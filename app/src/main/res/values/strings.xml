@@ -3,4 +3,14 @@
     <string name="app_title">OBD PIDs for HKMC EVs</string>
     <string name="btn_soul_ev">Soul EV Since 2015</string>
     <string name="btn_update">Update</string>
+    <string name="error_generic">An error occurred. Please try again.</string>
+    <string name="error_permissions">Torque permissions not granted</string>
+    <string name="error_connection">Could not connect to Torque Pro</string>
+    <string name="tooltip_soul_ev">Load PIDs for Soul EV models since 2015</string>
+    <string name="tooltip_update">Check for and download PID updates</string>
+    <string name="error_pid_data">Failed to add PID data</string>
+    <string name="success_pid_data">Successfully added PID data</string>
+    <string name="error_bind_service">Failed to bind Torque service</string>
+    <string name="error_io">Failed to read PID data file</string>
+    <string name="error_csv_format">Invalid CSV file format</string>
 </resources>
