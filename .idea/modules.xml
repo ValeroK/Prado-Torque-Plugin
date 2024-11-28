@@ -2,8 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/HKMC-EV-Torque-Plugin.iml" filepath="$PROJECT_DIR$/HKMC-EV-Torque-Plugin.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/OBD_PIDs_for_HKMC_EVs.iml" filepath="$PROJECT_DIR$/.idea/modules/OBD_PIDs_for_HKMC_EVs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/OBD_PIDs_for_HKMC_EVs.app.unitTest.iml" />
     </modules>
   </component>
 </project>

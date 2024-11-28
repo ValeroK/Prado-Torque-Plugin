@@ -5,9 +5,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Bundle;
 import android.view.View;
@@ -21,10 +19,10 @@ import com.opencsv.CSVReader;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -44,7 +42,7 @@ public class PluginActivity extends Activity {
         @Override
         protected Void doInBackground(Void... params) {
             try {
-                URL url = new URL("https://github.com/JejuSoul/OBD-PIDs-for-HKMC-EVs/archive/master.zip");
+                URL url = URI.create("https://github.com/JejuSoul/OBD-PIDs-for-HKMC-EVs/archive/master.zip").toURL();
                 HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 
                 int len = 1024*1024; // Buffer Size

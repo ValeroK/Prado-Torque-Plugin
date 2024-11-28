@@ -1,38 +1,89 @@
-apply plugin: 'com.android.application'
-
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+}
 android {
-    compileSdkVersion 23
-    buildToolsVersion '25.0.2'
+    namespace 'jejusoul.com.github.obd_pids_for_hkmc_evs'
+    compileSdk 34
+
     defaultConfig {
         applicationId "jejusoul.com.github.obd_pids_for_hkmc_evs"
-        minSdkVersion 15
-        targetSdkVersion 23
+        minSdk 21
+        targetSdk 34
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    productFlavors {
-    }
-    dexOptions {
-        incremental true
-    }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        viewBinding true
+        aidl true
+    }
+
+    sourceSets {
+        main {
+            aidl.srcDirs = ['src/main/aidl']
+            java.srcDirs = ['src/main/java']
+        }
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:23.0.0'
-    testCompile 'junit:junit:4.12'
+    // Core
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    
+    // Architecture Components
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
+    
+    // Dependency Injection
+    implementation 'com.google.dagger:hilt-android:2.50'
+    kapt 'com.google.dagger:hilt-compiler:2.50'
+    
+    // Networking
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    
+    // CSV Parser
+    implementation 'com.opencsv:opencsv:5.9'
+    
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
+
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core-ktx:1.12.0'
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
