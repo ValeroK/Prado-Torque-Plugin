@@ -167,6 +167,7 @@ public class PluginActivity extends AppCompatActivity {
             }
 
             return null;
+
         }
     }
 
