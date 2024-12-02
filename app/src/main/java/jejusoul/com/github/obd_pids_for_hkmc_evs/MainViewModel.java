@@ -5,12 +5,9 @@ import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.opencsv.exceptions.CsvValidationException;
-
-import jejusoul.com.github.obd_pids_for_hkmc_evs.data.CSVDataManager;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.CSVDataManager;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.data.model.PIDData;
 
-import java.io.IOException;
 import java.util.List;
 
 public class MainViewModel extends AndroidViewModel {

@@ -1,4 +1,4 @@
-package jejusoul.com.github.obd_pids_for_hkmc_evs.data;
+package jejusoul.com.github.obd_pids_for_hkmc_evs.utils;
 
 import android.content.Context;
 

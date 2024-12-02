@@ -18,7 +18,7 @@ import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.IOException;
 
-import jejusoul.com.github.obd_pids_for_hkmc_evs.data.CSVDataManager;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.CSVDataManager;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.data.model.PIDData;
 
 @RunWith(AndroidJUnit4.class)
