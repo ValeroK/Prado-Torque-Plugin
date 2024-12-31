@@ -20,6 +20,38 @@ import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * GitHubDownloadManager handles downloading and extracting PID definition files from GitHub.
+ * 
+ * This utility class is responsible for:
+ * - Downloading PID CSV files from GitHub repositories
+ * - Managing download progress and status
+ * - Extracting downloaded files
+ * - Handling network operations and file system interactions
+ * 
+ * The class implements a complete download workflow:
+ * 1. Initiating download from GitHub URL
+ * 2. Tracking download progress
+ * 3. Handling download completion
+ * 4. Extracting and processing downloaded files
+ * 
+ * Key Features:
+ * - Asynchronous download operations
+ * - Progress tracking and status updates
+ * - Error handling for network and file operations
+ * - Support for different GitHub repository structures
+ * 
+ * Download States:
+ * - IDLE: No active download
+ * - DOWNLOADING: Currently downloading file
+ * - EXTRACTING: Processing downloaded file
+ * - COMPLETED: Download and extraction finished
+ * - ERROR: Download or extraction failed
+ * 
+ * Usage Example:
+ * GitHubDownloadManager manager = new GitHubDownloadManager(context);
+ * manager.downloadAndExtract();
+ */
 public class GitHubDownloadManager {
     private static final String TAG = "GitHubDownloadManager";
     private static final String GITHUB_REPO_URL = "https://github.com/JejuSoul/OBD-PIDs-for-HKMC-EVs/archive/refs/heads/master.zip";

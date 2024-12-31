@@ -14,6 +14,42 @@ import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
 import java.util.List;
 
+/**
+ * TorqueServiceManager handles all interactions with the Torque Pro service.
+ * 
+ * This manager class is responsible for:
+ * - Establishing and maintaining connection with Torque Pro service
+ * - Managing service binding lifecycle
+ * - Handling connection state changes
+ * - Checking and requesting necessary permissions
+ * - Providing interface for PID data transmission
+ * 
+ * The class implements a robust connection management system with:
+ * - Automatic reconnection attempts
+ * - Connection state notifications
+ * - Error handling and reporting
+ * - Permission management
+ * 
+ * Key Features:
+ * - Observer pattern for connection state notifications
+ * - Automatic service binding management
+ * - Permission validation
+ * - Thread-safe service access
+ * 
+ * Connection States:
+ * - DISCONNECTED: No connection to Torque Pro
+ * - CONNECTING: Attempting to establish connection
+ * - CONNECTED: Successfully connected to Torque Pro
+ * - ERROR: Connection error occurred
+ * 
+ * Usage Example:
+ * TorqueServiceManager manager = new TorqueServiceManager(context);
+ * manager.setConnectionListener(listener);
+ * manager.bindToTorqueService();
+ * 
+ * @see TorqueConnectionListener
+ * @see ITorqueService
+ */
 public class TorqueServiceManager {
     private static final String TAG = "TorqueServiceManager";
     private Context context;

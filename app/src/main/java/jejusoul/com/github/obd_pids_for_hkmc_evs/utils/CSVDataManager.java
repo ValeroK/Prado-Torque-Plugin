@@ -13,6 +13,36 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * CSVDataManager handles the loading and parsing of PID data from CSV files.
+ * 
+ * This utility class is responsible for:
+ * - Reading CSV files containing PID definitions
+ * - Parsing CSV data into PidData objects
+ * - Validating PID data format and content
+ * - Managing file operations related to PID CSV files
+ * 
+ * The class supports both local file reading and handling downloaded CSV files.
+ * It implements error handling for various file operations and data validation
+ * scenarios.
+ * 
+ * CSV File Format Expected:
+ * - Header row with column names
+ * - Columns: Name, ShortName, ModeAndPID, Equation, MinValue, MaxValue, Unit, Header
+ * - All numeric values (MinValue, MaxValue) must be valid floating-point numbers
+ * 
+ * Key Features:
+ * - Robust error handling for file operations
+ * - Data validation during parsing
+ * - Support for different CSV formats
+ * - Context-aware file management
+ * 
+ * Usage Example:
+ * CSVDataManager manager = new CSVDataManager(context);
+ * List<PidData> pids = manager.loadPidsFromFile(filePath);
+ * 
+ * @see PidData
+ */
 public class CSVDataManager {
     private static final String TAG = "CSVDataManager";
     private static final String PID_FILES_DIR = "pid_files";

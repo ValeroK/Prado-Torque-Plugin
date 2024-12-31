@@ -23,6 +23,31 @@ import jejusoul.com.github.obd_pids_for_hkmc_evs.TorquePluginApplication;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.TorqueServiceManager;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
+/**
+ * PidImportActivity is the main activity responsible for importing PID (Parameter ID) data into Torque Pro.
+ * 
+ * This activity provides the following key functionalities:
+ * - Displays a list of available PIDs from a CSV file using a RecyclerView
+ * - Manages connection with the Torque Pro service
+ * - Handles the import process of selected PIDs into Torque Pro
+ * - Manages permissions and user interactions for Torque Pro integration
+ * 
+ * The activity implements TorqueConnectionListener to handle Torque Pro service connection states:
+ * - Connected: Enables PID import functionality
+ * - Disconnected: Disables import and shows appropriate messages
+ * - Error: Handles connection errors and user feedback
+ * 
+ * Key Components:
+ * - RecyclerView with PidAdapter for displaying PID list
+ * - FloatingActionButton for initiating PID import
+ * - Permission dialog for handling Torque Pro permissions
+ * - TorqueServiceManager for managing Torque Pro service connection
+ * - CSVDataManager for handling PID data loading from CSV files
+ * 
+ * @see TorqueServiceManager.TorqueConnectionListener
+ * @see PidAdapter
+ * @see CSVDataManager
+ */
 public class PidImportActivity extends AppCompatActivity implements TorqueServiceManager.TorqueConnectionListener {
     private RecyclerView pidRecyclerView;
     private PidAdapter pidAdapter;
@@ -73,6 +98,7 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
     @Override
     protected void onResume() {
         super.onResume();
+        importButton.setEnabled(false);  // Disable by default until connection is confirmed
         if (!serviceManager.bindToTorqueService()) {
             Toast.makeText(this, R.string.error_torque_connection, Toast.LENGTH_SHORT).show();
         }
@@ -87,16 +113,19 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
     @Override
     public void onTorqueConnected() {
         torqueService = serviceManager.getTorqueService();
+        importButton.setEnabled(true);
     }
 
     @Override
     public void onTorqueDisconnected() {
         torqueService = null;
+        importButton.setEnabled(false);
     }
 
     @Override
     public void onTorqueError(String error) {
         Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+        importButton.setEnabled(false);
     }
 
     private void createPermissionDialog() {

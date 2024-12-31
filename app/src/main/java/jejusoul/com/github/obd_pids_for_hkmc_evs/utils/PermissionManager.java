@@ -1,3 +1,35 @@
+/**
+ * PermissionManager handles all permission-related operations for the application.
+ * 
+ * This utility class is responsible for:
+ * - Checking and requesting Android runtime permissions
+ * - Managing Torque Pro specific permissions
+ * - Handling permission request callbacks
+ * - Providing permission status information
+ * 
+ * The class handles various permission types:
+ * - Android runtime permissions (e.g., WRITE_EXTERNAL_STORAGE)
+ * - Torque Pro plugin permissions
+ * - Custom permission requirements
+ * 
+ * Key Features:
+ * - Centralized permission management
+ * - Permission request result handling
+ * - Permission status caching
+ * - Permission requirement validation
+ * 
+ * Permission States:
+ * - GRANTED: Permission is available
+ * - DENIED: Permission was denied by user
+ * - NEVER_ASK_AGAIN: User denied and selected "Don't ask again"
+ * - REQUESTING: Permission request in progress
+ * 
+ * Usage Example:
+ * PermissionManager manager = new PermissionManager(activity);
+ * if (!manager.hasRequiredPermissions()) {
+ *     manager.requestPermissions();
+ * }
+ */
 package jejusoul.com.github.obd_pids_for_hkmc_evs.utils;
 
 import android.Manifest;
