@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">HKMC EV Torque Plugin</string>
+    <string name="app_name">Torque Plugin</string>
+    <string name="app_title">OBD PIDs</string>
+    <string name="btn_soul_ev">Soul EV Since 2015</string>
+    <string name="btn_update">Update</string>
+    <string name="error_generic">An error occurred. Please try again.</string>
+    <string name="error_permissions">Torque permissions not granted</string>
+    <string name="error_connection">Could not connect to Torque Pro</string>
+    <string name="tooltip_soul_ev">Load PIDs for Soul EV models since 2015</string>
+    <string name="tooltip_update">Check for and download PID updates</string>
+    <string name="error_pid_data">Failed to add PID data</string>
+    <string name="success_pid_data">Successfully added PID data</string>
+    <string name="error_bind_service">Failed to bind Torque service</string>
+    <string name="error_io">Failed to read PID data file</string>
+    <string name="error_csv_format">Invalid CSV file format</string>
+    <string name="error_network_or_file">Network or file error occurred</string>
+    <string name="error_data_format">Error parsing data</string>
+    <string name="error_invalid_state">Invalid application state</string>
+    <string name="error_unexpected">An unexpected error occurred</string>
 </resources>

@@ -1,6 +1,5 @@
 package jejusoul.com.github.obd_pids_for_hkmc_evs;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -8,9 +7,12 @@ import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import org.prowl.torque.remote.ITorqueService;
 
@@ -28,14 +30,125 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.io.IOException;
+import org.json.JSONException;
 
 
-
-
-
-public class PluginActivity extends Activity {
+public class PluginActivity extends AppCompatActivity {
 
     private ITorqueService torqueService;
+    private final View.OnClickListener mClickListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            handleSoulEvClick();
+        }
+    };
+    private final View.OnClickListener updateClickListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            new DownloadFilesTask().execute();
+        }
+    };
+    private MainViewModel viewModel;
+
+    private void handleSoulEvClick() {
+        try {
+            if (torqueService == null || !torqueService.hasFullPermissions()) {
+                showPermissionError();
+                return;
+            }
+
+            List<String> name = new ArrayList<>();
+            List<String> shortName = new ArrayList<>();
+            List<String> modeAndPID = new ArrayList<>();
+            List<String> equation = new ArrayList<>();
+            List<Float> minValue = new ArrayList<>();
+            List<Float> maxValue = new ArrayList<>();
+            List<String> unit = new ArrayList<>();
+            List<String> header = new ArrayList<>();
+
+            String[] nextLine;
+            for (String filename : getAssets().list("Soul EV")) {
+                CSVReader reader = new CSVReader(new BufferedReader(
+                        new InputStreamReader(getAssets().open("Soul EV/" + filename),
+                                Charset.forName("UTF-8"))));
+
+                while ((nextLine = reader.readNext()) != null) {
+                    name.add(nextLine[0]);
+                    shortName.add(nextLine[1]);
+                    modeAndPID.add(nextLine[2]);
+                    equation.add(nextLine[3]);
+                    minValue.add(Float.parseFloat(nextLine[4]));
+                    maxValue.add(Float.parseFloat(nextLine[5]));
+                    unit.add(nextLine[6]);
+                    header.add(nextLine[7]);
+                }
+            }
+
+            float[] minvalueArray = new float[minValue.size()];
+            float[] maxvalueArray = new float[maxValue.size()];
+            for (int i = 0; i < minValue.size(); i++) {
+                minvalueArray[i] = minValue.get(i);
+                maxvalueArray[i] = maxValue.get(i);
+            }
+
+            boolean success = torqueService.sendPIDDataV2(getPackageName(),
+                    name.toArray(new String[0]),
+                    shortName.toArray(new String[0]),
+                    modeAndPID.toArray(new String[0]),
+                    equation.toArray(new String[0]),
+                    minvalueArray,
+                    maxvalueArray,
+                    unit.toArray(new String[0]),
+                    header.toArray(new String[0]),
+                    null,
+                    null
+            );
+
+            if (!success) {
+                Toast.makeText(getApplicationContext(),
+                        getString(R.string.error_pid_data),
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(),
+                        getString(R.string.success_pid_data),
+                        Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (IOException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_network_or_file),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (JSONException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_data_format),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (IllegalStateException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_invalid_state),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (Exception e) {
+            // Catch any unexpected exceptions as a fallback
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_unexpected),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        }
+    }
+
+    private void showPermissionError() {
+        Toast.makeText(getApplicationContext(),
+                getString(R.string.error_permissions),
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void handleError(Exception ex) {
+        Log.e("PluginActivity", "Error: ", ex);
+        Toast.makeText(getApplicationContext(),
+                getString(R.string.error_generic),
+                Toast.LENGTH_SHORT).show();
+    }
 
     private class DownloadFilesTask extends AsyncTask<Void, Void, Void> {
 
@@ -75,85 +188,9 @@ public class PluginActivity extends Activity {
             }
 
             return null;
+
         }
     }
-
-    private View.OnClickListener updateClickListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            new DownloadFilesTask().execute(null, null, null);
-        }
-    };
-
-    Button.OnClickListener mClickListener = new View.OnClickListener() {
-        public void onClick(View v) {
-
-            try {
-
-                List<String> name = new ArrayList<String>();
-                List<String> shortName = new ArrayList<String>();
-                List<String> modeAndPID = new ArrayList<String>();
-                List<String> equation = new ArrayList<String>();
-                List<Float> minValue = new ArrayList<Float>();
-                List<Float> maxValue = new ArrayList<Float>();
-                List<String> unit = new ArrayList<String>();
-                List<String> header = new ArrayList<String>();
-
-                String[] nextLine;
-                for (String filename : getAssets().list("Soul EV")) {
-                    File filesDir = getFilesDir();
-                    CSVReader reader = new CSVReader(new BufferedReader(new InputStreamReader(getAssets().open("Soul EV/" + filename), Charset.forName("UTF-8"))));
-
-                    while ((nextLine = reader.readNext()) != null) {
-                        // Manage extra PIDs/Sensors >> Add predefined set >> HKMC EV
-                        name.add(nextLine[0]);
-                        shortName.add(nextLine[1]);
-                        modeAndPID.add(nextLine[2]);
-                        equation.add(nextLine[3]);
-                        minValue.add(Float.parseFloat(nextLine[4]));
-                        maxValue.add(Float.parseFloat(nextLine[5]));
-                        unit.add(nextLine[6]);
-                        header.add(nextLine[7]);
-                    }
-                }
-
-                float[] minvalueArray = new float[minValue.size()];
-                for (int i = 0; i < minValue.size(); i++) {
-                    minvalueArray[i] = minValue.get(i).floatValue();
-                }
-                float[] maxvalueArray = new float[maxValue.size()];
-                for (int i = 0; i < maxValue.size(); i++) {
-                    maxvalueArray[i] = maxValue.get(i).floatValue();
-                }
-
-                boolean success = torqueService.sendPIDDataV2(getPackageName(),
-                        name.toArray(new String[name.size()]),
-                        shortName.toArray(new String[shortName.size()]),
-                        modeAndPID.toArray(new String[modeAndPID.size()]),
-                        equation.toArray(new String[equation.size()]),
-                        minvalueArray,
-                        maxvalueArray,
-                        unit.toArray(new String[unit.size()]),
-                        header.toArray(new String[header.size()]),
-                        null,
-                        null
-                );
-
-                if (!success) {
-                    Toast.makeText(getApplicationContext(), "Fail to add PID data", Toast.LENGTH_SHORT).show();
-                }
-                else
-                {
-                    Toast.makeText(getApplicationContext(), "Finish", Toast.LENGTH_SHORT).show();
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_SHORT).show();
-            }
-        }
-    };
-
 
     /**
      * Bits of service code. You usually won't need to change this.
@@ -187,24 +224,19 @@ public class PluginActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
         findViewById(R.id.soul_since_2015).setOnClickListener(mClickListener);
         findViewById(R.id.update).setOnClickListener(updateClickListener);
-
 
         Intent intent = new Intent();
         intent.setClassName("org.prowl.torque", "org.prowl.torque.remote.TorqueService");
         boolean successfulBind = bindService(intent, connection, 0);
 
-        if (successfulBind) {
-
-            // Not really anything to do here.  Once you have bound to the service, you can start calling
-            // methods on torqueService.someMethod()  - look at the aidl file for more info on the calls
-
-        } else {
-
-            Toast.makeText(getApplicationContext(), "Fail to bind torque service", Toast.LENGTH_SHORT).show();
+        if (!successfulBind) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_bind_service),
+                    Toast.LENGTH_SHORT).show();
         }
-
     }
 }
