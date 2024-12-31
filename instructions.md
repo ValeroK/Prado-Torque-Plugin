@@ -6,12 +6,12 @@
 5. The app will use latest gradle, kotlin and java versions and standards
 
 # Core Functionalities
-2. The app will connect to Torque and verify that the app is connected to the right version of Torque using ITorqueService.aidl
-3. The app will download from GitHub all relevant zip files that contain a CSV with the relevant PIDs
-4. The user will select the PIDs they want to import
-5. The app will import the PIDs into the Torque app using ITorqueService.aidl
-6. The app will be able to import PIDs from a local CSV file
-7. The app will also support importing multiple CSV files
+1. The app will connect to Torque and verify that the app is connected to the right version of Torque using ITorqueService.aidl
+2. The app will download from GitHub all relevant zip files that contain a CSV with the relevant PIDs
+3. The user will select the PIDs they want to import
+4. The app will import the PIDs into the Torque app using ITorqueService.aidl
+5. The app will be able to import PIDs from a local CSV file
+6. The app will also support importing multiple CSV files
 
 # Doc // Reference doc used above
 

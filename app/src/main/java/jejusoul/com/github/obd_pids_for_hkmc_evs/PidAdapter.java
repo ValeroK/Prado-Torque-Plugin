@@ -7,9 +7,11 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.stream.Collectors;
+
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
 public class PidAdapter extends RecyclerView.Adapter<PidAdapter.PidViewHolder> {
     private List<PidData> pidList;

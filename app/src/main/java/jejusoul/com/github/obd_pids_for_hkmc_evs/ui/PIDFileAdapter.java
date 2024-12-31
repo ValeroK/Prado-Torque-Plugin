@@ -6,29 +6,27 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 import jejusoul.com.github.obd_pids_for_hkmc_evs.R;
 
-public class PIDFileAdapter extends RecyclerView.Adapter<PIDFileAdapter.ViewHolder> {
-    private List<File> files = new ArrayList<>();
+public class PIDFileAdapter extends ListAdapter<File, PIDFileAdapter.ViewHolder> {
     private OnFileSelectedListener listener;
 
     public interface OnFileSelectedListener {
         void onFileSelected(File file);
     }
 
-    public void setOnFileSelectedListener(OnFileSelectedListener listener) {
-        this.listener = listener;
+    public PIDFileAdapter() {
+        super(new FileDiffCallback());
     }
 
-    public void setFiles(List<File> newFiles) {
-        files = new ArrayList<>(newFiles);
-        notifyDataSetChanged();
+    public void setOnFileSelectedListener(OnFileSelectedListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
@@ -41,13 +39,7 @@ public class PIDFileAdapter extends RecyclerView.Adapter<PIDFileAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        File file = files.get(position);
-        holder.bind(file);
-    }
-
-    @Override
-    public int getItemCount() {
-        return files.size();
+        holder.bind(getItem(position));
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
@@ -59,13 +51,26 @@ public class PIDFileAdapter extends RecyclerView.Adapter<PIDFileAdapter.ViewHold
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onFileSelected(files.get(position));
+                    listener.onFileSelected(getItem(position));
                 }
             });
         }
 
         void bind(File file) {
             textView.setText(file.getName());
+        }
+    }
+
+    private static class FileDiffCallback extends DiffUtil.ItemCallback<File> {
+        @Override
+        public boolean areItemsTheSame(@NonNull File oldItem, @NonNull File newItem) {
+            return oldItem.getAbsolutePath().equals(newItem.getAbsolutePath());
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull File oldItem, @NonNull File newItem) {
+            return oldItem.lastModified() == newItem.lastModified() &&
+                   oldItem.length() == newItem.length();
         }
     }
 }

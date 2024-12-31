@@ -8,9 +8,11 @@ import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.prowl.torque.remote.ITorqueService;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
+
+import java.util.List;
 
 public class TorqueServiceManager {
     private static final String TAG = "TorqueServiceManager";
@@ -114,16 +116,70 @@ public class TorqueServiceManager {
     }
 
     public boolean checkFullPermissions() {
-        if (torqueService != null) {
-            try {
-                return torqueService.hasFullPermissions();
-            } catch (RemoteException e) {
-                Log.e(TAG, "Error checking Torque permissions", e);
+        return PermissionManager.isTorquePermissionGranted(context);
+    }
+
+    public boolean isConnected() {
+        return isBound && torqueService != null;
+    }
+
+    public void importPids(List<PidData> pids) {
+        if (!isConnected()) {
+            if (connectionListener != null) {
+                connectionListener.onTorqueError("Not connected to Torque Pro");
+            }
+            return;
+        }
+
+        try {
+            int size = pids.size();
+            String[] names = new String[size];
+            String[] shortNames = new String[size];
+            String[] modeAndPIDs = new String[size];
+            String[] equations = new String[size];
+            float[] minValues = new float[size];
+            float[] maxValues = new float[size];
+            String[] units = new String[size];
+            String[] headers = new String[size];
+
+            for (int i = 0; i < size; i++) {
+                PidData pid = pids.get(i);
+                names[i] = pid.getName();
+                shortNames[i] = pid.getShortName();
+                modeAndPIDs[i] = pid.getModeAndPID();
+                equations[i] = pid.getEquation();
+                minValues[i] = pid.getMinValue();
+                maxValues[i] = pid.getMaxValue();
+                units[i] = pid.getUnit();
+                headers[i] = pid.getHeader();
+            }
+
+            boolean success = torqueService.sendPIDDataPrivate(
+                "jejusoul.com.github.obd_pids_for_hkmc_evs",
+                names,
+                shortNames,
+                modeAndPIDs,
+                equations,
+                minValues,
+                maxValues,
+                units,
+                headers
+            );
+
+            if (success) {
                 if (connectionListener != null) {
-                    connectionListener.onTorqueError("Failed to check Torque permissions: " + e.getMessage());
+                    connectionListener.onTorqueConnected(); // Refresh UI state
+                }
+            } else {
+                if (connectionListener != null) {
+                    connectionListener.onTorqueError("Failed to import PIDs");
                 }
             }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Error importing PIDs", e);
+            if (connectionListener != null) {
+                connectionListener.onTorqueError("Failed to import PIDs: " + e.getMessage());
+            }
         }
-        return false;
     }
 }

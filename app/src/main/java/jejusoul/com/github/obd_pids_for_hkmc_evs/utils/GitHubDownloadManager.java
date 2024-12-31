@@ -25,6 +25,7 @@ public class GitHubDownloadManager {
     private static final String GITHUB_REPO_URL = "https://github.com/JejuSoul/OBD-PIDs-for-HKMC-EVs/archive/refs/heads/master.zip";
     private static final int BUFFER_SIZE = 4096;
     private static final String CSV_EXTENSION = ".csv";
+    private static final String REPO_BASE_NAME = "OBD-PIDs-for-HKMC-EVs-master";
 
     private final Context context;
     private final ExecutorService executorService;
@@ -58,8 +59,8 @@ public class GitHubDownloadManager {
         this.downloadStatus = new MutableLiveData<>(new DownloadStatus(DownloadState.IDLE, 0, ""));
         this.csvFiles = new MutableLiveData<>(new ArrayList<>());
         this.downloadDir = new File(context.getFilesDir(), "downloads");
-        if (!downloadDir.exists()) {
-            downloadDir.mkdirs();
+        if (!downloadDir.exists() && !downloadDir.mkdirs()) {
+            Log.e(TAG, "Failed to create download directory");
         }
     }
 
@@ -72,11 +73,23 @@ public class GitHubDownloadManager {
     }
 
     private void clearDownloadDirectory() {
-        File[] files = downloadDir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                file.delete();
+        deleteRecursive(downloadDir);
+        if (!downloadDir.exists() && !downloadDir.mkdirs()) {
+            Log.e(TAG, "Failed to recreate download directory");
+        }
+    }
+
+    private void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory()) {
+            File[] children = fileOrDirectory.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursive(child);
+                }
             }
+        }
+        if (!fileOrDirectory.delete() && fileOrDirectory.exists()) {
+            Log.w(TAG, "Failed to delete: " + fileOrDirectory.getAbsolutePath());
         }
     }
 
@@ -104,21 +117,44 @@ public class GitHubDownloadManager {
     @NonNull
     private List<File> extractZipFile(File zipFile) throws IOException {
         List<File> csvFiles = new ArrayList<>();
+        File extractDir = new File(downloadDir, REPO_BASE_NAME);
+        if (!extractDir.exists() && !extractDir.mkdirs()) {
+            Log.e(TAG, "Failed to create extraction directory");
+        }
         
         try (ZipInputStream zis = new ZipInputStream(new java.io.FileInputStream(zipFile))) {
             ZipEntry entry;
+            byte[] buffer = new byte[BUFFER_SIZE];
+            
             while ((entry = zis.getNextEntry()) != null) {
-                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(CSV_EXTENSION)) {
-                    File csvFile = new File(downloadDir, new File(entry.getName()).getName());
-                    try (FileOutputStream fos = new FileOutputStream(csvFile)) {
-                        byte[] buffer = new byte[BUFFER_SIZE];
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) {
-                            fos.write(buffer, 0, len);
-                        }
-                    }
-                    csvFiles.add(csvFile);
+                String entryName = entry.getName();
+                
+                // Skip directories and non-CSV files
+                if (entry.isDirectory() || !entryName.toLowerCase().endsWith(CSV_EXTENSION)) {
+                    continue;
                 }
+
+                // Create the full path for the output file
+                File outputFile = new File(downloadDir, entryName);
+                File parentDir = outputFile.getParentFile();
+                
+                if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
+                    Log.e(TAG, "Failed to create directory: " + parentDir.getAbsolutePath());
+                    continue;
+                }
+
+                try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        fos.write(buffer, 0, len);
+                    }
+                    csvFiles.add(outputFile);
+                    Log.d(TAG, "Extracted: " + outputFile.getAbsolutePath());
+                } catch (IOException e) {
+                    Log.e(TAG, "Failed to extract file: " + entryName, e);
+                }
+                
+                zis.closeEntry();
             }
         }
         
@@ -129,7 +165,33 @@ public class GitHubDownloadManager {
         downloadStatus.postValue(new DownloadStatus(state, progress, message));
     }
 
+    public void downloadAndExtract() {
+        executorService.execute(() -> {
+            File zipFile = null;
+            try {
+                clearDownloadDirectory();
+                updateStatus(DownloadState.DOWNLOADING, 0, "Starting download...");
+
+                zipFile = downloadZipFile();
+                updateStatus(DownloadState.EXTRACTING, 50, "Extracting files...");
+
+                List<File> extractedFiles = extractZipFile(zipFile);
+                csvFiles.postValue(extractedFiles);
+
+                updateStatus(DownloadState.COMPLETED, 100, "Download completed");
+            } catch (IOException e) {
+                Log.e(TAG, "Error during download/extract", e);
+                updateStatus(DownloadState.ERROR, 0, "Error: " + e.getMessage());
+            } finally {
+                if (zipFile != null && zipFile.exists()) {
+                    zipFile.delete();
+                }
+            }
+        });
+    }
+
     public void cleanup() {
         executorService.shutdown();
+        clearDownloadDirectory();
     }
 }

@@ -3,6 +3,7 @@ package jejusoul.com.github.obd_pids_for_hkmc_evs.utils;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.view.LayoutInflater;
@@ -38,31 +39,25 @@ public class PermissionManager {
         void onPermissionsDenied(List<String> deniedPermissions);
     }
 
-    public PermissionManager(Activity activity, PermissionCallback callback) {
-        this.activity = activity;
-        this.callback = callback;
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            STORAGE_PERMISSIONS = new String[] {
-                Manifest.permission.INTERNET
-            };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            STORAGE_PERMISSIONS = new String[] {
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.INTERNET
-            };
-        } else {
-            STORAGE_PERMISSIONS = new String[] {
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.INTERNET
-            };
-        }
+    /**
+     * Static method to check if Torque permission is granted
+     * @param context Application context
+     * @return true if permission is granted, false otherwise
+     */
+    public static boolean isTorquePermissionGranted(Context context) {
+        return ContextCompat.checkSelfPermission(context, TORQUE_PERMISSION) 
+                == PackageManager.PERMISSION_GRANTED;
     }
 
-    public boolean areStoragePermissionsGranted() {
-        for (String permission : STORAGE_PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(activity, permission) 
+    /**
+     * Static method to check if storage permissions are granted
+     * @param context Application context
+     * @return true if all required storage permissions are granted, false otherwise
+     */
+    public static boolean areStoragePermissionsGranted(Context context) {
+        String[] permissions = getStoragePermissions();
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(context, permission) 
                     != PackageManager.PERMISSION_GRANTED) {
                 return false;
             }
@@ -70,9 +65,40 @@ public class PermissionManager {
         return true;
     }
 
+    /**
+     * Get the required storage permissions based on Android version
+     */
+    private static String[] getStoragePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[] {
+                Manifest.permission.INTERNET
+            };
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return new String[] {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.INTERNET
+            };
+        } else {
+            return new String[] {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.INTERNET
+            };
+        }
+    }
+
+    public PermissionManager(Activity activity, PermissionCallback callback) {
+        this.activity = activity;
+        this.callback = callback;
+        this.STORAGE_PERMISSIONS = getStoragePermissions();
+    }
+
+    public boolean areStoragePermissionsGranted() {
+        return areStoragePermissionsGranted(activity);
+    }
+
     public boolean isTorquePermissionGranted() {
-        return ContextCompat.checkSelfPermission(activity, TORQUE_PERMISSION) 
-                == PackageManager.PERMISSION_GRANTED;
+        return isTorquePermissionGranted(activity);
     }
 
     public void checkAndRequestStoragePermissions() {

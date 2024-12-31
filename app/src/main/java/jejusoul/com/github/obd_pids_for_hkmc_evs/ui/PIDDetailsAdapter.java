@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.Set;
 
 import jejusoul.com.github.obd_pids_for_hkmc_evs.R;
-import jejusoul.com.github.obd_pids_for_hkmc_evs.data.model.PIDData;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
 public class PIDDetailsAdapter extends RecyclerView.Adapter<PIDDetailsAdapter.ViewHolder> {
-    private List<PIDData> pidList = new ArrayList<>();
-    private Set<PIDData> selectedPids = new HashSet<>();
+    private List<PidData> pidList = new ArrayList<>();
+    private Set<PidData> selectedPids = new HashSet<>();
 
     @NonNull
     @Override
@@ -31,7 +31,7 @@ public class PIDDetailsAdapter extends RecyclerView.Adapter<PIDDetailsAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        PIDData pid = pidList.get(position);
+        PidData pid = pidList.get(position);
         holder.bind(pid);
     }
 
@@ -40,24 +40,27 @@ public class PIDDetailsAdapter extends RecyclerView.Adapter<PIDDetailsAdapter.Vi
         return pidList.size();
     }
 
-    public void setPidList(List<PIDData> newPidList) {
-        pidList = new ArrayList<>(newPidList);
-        selectedPids.clear();
-        selectedPids.addAll(newPidList); // Select all by default
+    public void submitList(List<PidData> newPidList) {
+        if (newPidList == null) {
+            pidList.clear();
+            selectedPids.clear();
+        } else {
+            pidList = new ArrayList<>(newPidList);
+            selectedPids.clear();
+            selectedPids.addAll(newPidList); // Select all by default
+        }
         notifyDataSetChanged();
     }
 
-    public Set<PIDData> getSelectedPids() {
+    public Set<PidData> getSelectedPids() {
         return new HashSet<>(selectedPids);
     }
 
-    public boolean areAllSelected() {
-        return selectedPids.size() == pidList.size();
-    }
-
-    public void selectAll(boolean select) {
-        selectedPids.clear();
-        if (select) {
+    public void toggleSelectAll() {
+        if (selectedPids.size() == pidList.size()) {
+            selectedPids.clear();
+        } else {
+            selectedPids.clear();
             selectedPids.addAll(pidList);
         }
         notifyDataSetChanged();
@@ -76,33 +79,35 @@ public class PIDDetailsAdapter extends RecyclerView.Adapter<PIDDetailsAdapter.Vi
             shortNameText = itemView.findViewById(R.id.pidShortName);
             detailsText = itemView.findViewById(R.id.pidDetails);
 
-            checkbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            View.OnClickListener clickListener = v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
-                    PIDData pid = pidList.get(position);
-                    if (isChecked) {
-                        selectedPids.add(pid);
-                    } else {
+                    PidData pid = pidList.get(position);
+                    if (selectedPids.contains(pid)) {
                         selectedPids.remove(pid);
+                    } else {
+                        selectedPids.add(pid);
                     }
+                    notifyItemChanged(position);
                 }
-            });
+            };
+
+            // Make the whole item clickable
+            itemView.setOnClickListener(clickListener);
+            checkbox.setOnClickListener(clickListener);
         }
 
-        void bind(PIDData pid) {
-            nameText.setText(itemView.getContext().getString(R.string.pid_name, pid.getName()));
-            shortNameText.setText(itemView.getContext().getString(R.string.pid_short_name, pid.getShortName()));
-            
-            StringBuilder details = new StringBuilder();
-            details.append(itemView.getContext().getString(R.string.pid_mode, pid.getModeAndPID())).append('\n')
-                   .append(itemView.getContext().getString(R.string.pid_equation, pid.getEquation())).append('\n')
-                   .append(itemView.getContext().getString(R.string.pid_min_value, pid.getMinValue())).append('\n')
-                   .append(itemView.getContext().getString(R.string.pid_max_value, pid.getMaxValue())).append('\n')
-                   .append(itemView.getContext().getString(R.string.pid_unit, pid.getUnit())).append('\n')
-                   .append(itemView.getContext().getString(R.string.pid_header, pid.getHeader()));
-            
-            detailsText.setText(details.toString());
+        void bind(PidData pid) {
             checkbox.setChecked(selectedPids.contains(pid));
+            nameText.setText(pid.getName());
+            shortNameText.setText(pid.getShortName());
+            String details = String.format("Mode: %s\nEquation: %s\nRange: %.2f to %.2f %s",
+                    pid.getModeAndPID(),
+                    pid.getEquation(),
+                    pid.getMinValue(),
+                    pid.getMaxValue(),
+                    pid.getUnit());
+            detailsText.setText(details);
         }
     }
 }

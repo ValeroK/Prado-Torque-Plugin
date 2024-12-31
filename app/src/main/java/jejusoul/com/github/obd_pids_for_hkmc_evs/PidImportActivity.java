@@ -13,15 +13,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import org.prowl.torque.remote.ITorqueService;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.TorquePlugin;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.CSVDataManager;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.TorquePluginApplication;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.TorqueServiceManager;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
 public class PidImportActivity extends AppCompatActivity implements TorqueServiceManager.TorqueConnectionListener {
     private RecyclerView pidRecyclerView;
@@ -31,6 +31,7 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
     private List<PidData> pidList = new ArrayList<>();
     private Dialog permissionDialog;
     private TorqueServiceManager serviceManager;
+    private CSVDataManager csvDataManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +46,8 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
-        // Initialize views
+        // Initialize managers and views
+        csvDataManager = new CSVDataManager(this);
         pidRecyclerView = findViewById(R.id.pidRecyclerView);
         importButton = findViewById(R.id.importButton);
 
@@ -55,7 +57,7 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
         pidRecyclerView.setAdapter(pidAdapter);
 
         // Setup Torque service
-        serviceManager = ((TorquePlugin) getApplication()).getTorqueServiceManager();
+        serviceManager = ((TorquePluginApplication) getApplication()).getTorqueServiceManager();
         serviceManager.setConnectionListener(this);
 
         // Setup import button
@@ -71,8 +73,7 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
     @Override
     protected void onResume() {
         super.onResume();
-        if (!serviceManager.
-                bindToTorqueService()) {
+        if (!serviceManager.bindToTorqueService()) {
             Toast.makeText(this, R.string.error_torque_connection, Toast.LENGTH_SHORT).show();
         }
     }
@@ -203,51 +204,15 @@ public class PidImportActivity extends AppCompatActivity implements TorqueServic
                 return;
             }
 
-            // Clear existing list
+            // Clear existing list and load PIDs using CSVDataManager
             pidList.clear();
-
-            // Read and parse the file
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-            boolean isFirstLine = true;
-
-            while ((line = reader.readLine()) != null) {
-                // Skip header line
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
-                }
-
-                // Split the CSV line
-                String[] parts = line.split(",");
-                if (parts.length >= 8) {
-                    try {
-                        PidData pid = new PidData(
-                            parts[0].trim(),  // name
-                            parts[1].trim(),  // shortName
-                            parts[2].trim(),  // modeAndPID
-                            parts[3].trim(),  // equation
-                            Float.parseFloat(parts[4].trim()),  // minValue
-                            Float.parseFloat(parts[5].trim()),  // maxValue
-                            parts[6].trim(),  // unit
-                            parts[7].trim()   // header
-                        );
-                        pidList.add(pid);
-                    } catch (NumberFormatException e) {
-                        android.util.Log.e("PidImportActivity", "Error parsing PID values: " + line, e);
-                    }
-                }
-            }
-            reader.close();
-
-            // Update the adapter
+            pidList.addAll(csvDataManager.loadPIDDataFromFile(file));
             pidAdapter.notifyDataSetChanged();
 
             if (pidList.isEmpty()) {
                 Toast.makeText(this, R.string.error_no_valid_pids, Toast.LENGTH_SHORT).show();
                 finish();
             }
-
         } catch (IOException e) {
             android.util.Log.e("PidImportActivity", "Error reading PID file", e);
             Toast.makeText(this, R.string.error_reading_file, Toast.LENGTH_SHORT).show();
