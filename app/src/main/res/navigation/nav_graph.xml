@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/pidSelectionFragment">
+
+    <fragment
+        android:id="@+id/pidSelectionFragment"
+        android:name="jejusoul.com.github.obd_pids_for_hkmc_evs.ui.PIDSelectionFragment"
+        android:label="PID Selection">
+        <action
+            android:id="@+id/action_pidSelection_to_pidDetails"
+            app:destination="@id/pidDetailsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/pidDetailsFragment"
+        android:name="jejusoul.com.github.obd_pids_for_hkmc_evs.ui.PIDDetailsFragment"
+        android:label="PID Details">
+        <argument
+            android:name="csv_file_path"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

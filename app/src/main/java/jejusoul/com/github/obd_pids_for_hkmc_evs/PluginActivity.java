@@ -30,6 +30,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.io.IOException;
+import org.json.JSONException;
 
 
 public class PluginActivity extends AppCompatActivity {
@@ -111,8 +113,27 @@ public class PluginActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
             }
 
-        } catch (Exception ex) {
-            handleError(ex);
+        } catch (IOException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_network_or_file),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (JSONException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_data_format),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (IllegalStateException e) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_invalid_state),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
+        } catch (Exception e) {
+            // Catch any unexpected exceptions as a fallback
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_unexpected),
+                    Toast.LENGTH_SHORT).show();
+            handleError(e);
         }
     }
 
