@@ -7,10 +7,43 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
+
+/**
+ * PidAdapter is a RecyclerView adapter for displaying and managing PID items in the UI.
+ * 
+ * This adapter is responsible for:
+ * - Displaying PID information in a list format
+ * - Managing PID selection state
+ * - Handling user interactions with PID items
+ * - Providing access to selected PIDs
+ * 
+ * Features:
+ * - Efficient view recycling
+ * - Checkbox selection for each PID
+ * - Display of PID details (name, shortName, etc.)
+ * - Selection state persistence
+ * 
+ * UI Components per Item:
+ * - Checkbox for selection
+ * - PID name and description
+ * - Additional PID details (optional)
+ * 
+ * Key Methods:
+ * - getSelectedPids(): Returns list of selected PIDs
+ * - onBindViewHolder(): Binds PID data to views
+ * 
+ * Usage Example:
+ * PidAdapter adapter = new PidAdapter(pidList);
+ * recyclerView.setAdapter(adapter);
+ * 
+ * @see PidData
+ * @see RecyclerView.Adapter
+ */
 public class PidAdapter extends RecyclerView.Adapter<PidAdapter.PidViewHolder> {
     private List<PidData> pidList;
 

@@ -9,27 +9,39 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import jejusoul.com.github.obd_pids_for_hkmc_evs.MainViewModel;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.R;
-import jejusoul.com.github.obd_pids_for_hkmc_evs.data.model.PIDData;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.TorquePluginApplication;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.CSVDataManager;
 import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.TorqueServiceManager;
-import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.TorquePlugin;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.TorquePluginApplication;
+import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PermissionManager;
 
-public class PIDDetailsFragment extends Fragment {
+public class PIDDetailsFragment extends Fragment implements PermissionManager.PermissionCallback {
     private static final String ARG_CSV_FILE_PATH = "csv_file_path";
+    private static final String TAG = "PIDDetailsFragment";
     
     private PIDDetailsAdapter adapter;
     private CSVDataManager csvDataManager;
     private TorqueServiceManager torqueServiceManager;
+    private PermissionManager permissionManager;
+    private MaterialButton importButton;
+    private MaterialButton selectAllButton;
+    private MainViewModel viewModel;
 
     public static PIDDetailsFragment newInstance(String csvFilePath) {
         PIDDetailsFragment fragment = new PIDDetailsFragment();
@@ -43,137 +55,119 @@ public class PIDDetailsFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         csvDataManager = new CSVDataManager(requireContext());
-        torqueServiceManager = ((TorquePlugin) requireActivity().getApplication()).getTorqueServiceManager();
+        torqueServiceManager = ((TorquePluginApplication) requireActivity().getApplication()).getTorqueServiceManager();
+        permissionManager = new PermissionManager(requireActivity(), this);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         
-        // Set up connection listener
-        torqueServiceManager.setConnectionListener(new TorqueServiceManager.TorqueConnectionListener() {
-            @Override
-            public void onTorqueConnected() {
-                // Enable import functionality when connected
-                if (getView() != null) {
-                    getView().findViewById(R.id.importButton).setEnabled(true);
-                }
-            }
-
-            @Override
-            public void onTorqueDisconnected() {
-                // Disable import functionality when disconnected
-                if (getView() != null) {
-                    getView().findViewById(R.id.importButton).setEnabled(false);
-                }
-            }
-
-            @Override
-            public void onTorqueError(String error) {
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-            }
+        // Observe Torque service connection
+        viewModel.getTorqueService().observe(this, service -> {
+            importButton.setEnabled(service != null);
         });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!torqueServiceManager.bindToTorqueService()) {
+            Toast.makeText(requireContext(), R.string.error_torque_connection, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        torqueServiceManager.unbindFromTorqueService();
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                            @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_pid_details, container, false);
-    }
+        View view = inflater.inflate(R.layout.fragment_pid_details, container, false);
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
+        // Set up RecyclerView
         RecyclerView recyclerView = view.findViewById(R.id.pidDetailsRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setHasFixedSize(true);
+        
+        // Add divider between items
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recyclerView.getContext(),
+                layoutManager.getOrientation());
+        recyclerView.addItemDecoration(dividerItemDecoration);
+        
+        // Set up adapter
         adapter = new PIDDetailsAdapter();
         recyclerView.setAdapter(adapter);
 
-        MaterialButton importButton = view.findViewById(R.id.importButton);
+        // Set up buttons
+        importButton = view.findViewById(R.id.importButton);
         importButton.setOnClickListener(v -> importSelectedPids());
 
-        MaterialButton selectAllButton = view.findViewById(R.id.selectAllButton);
+        selectAllButton = view.findViewById(R.id.selectAllButton);
         selectAllButton.setOnClickListener(v -> toggleSelectAll());
 
-        loadPIDData();
+        // Load data if available
+        String csvFilePath = getArguments() != null ? getArguments().getString(ARG_CSV_FILE_PATH) : null;
+        if (csvFilePath != null) {
+            loadPIDData(csvFilePath);
+        }
+
+        return view;
     }
 
     private void toggleSelectAll() {
         if (adapter != null) {
-            boolean allSelected = adapter.areAllSelected();
-            adapter.selectAll(!allSelected);
+            adapter.toggleSelectAll();
         }
     }
 
-    private void loadPIDData() {
-        String csvFilePath = getArguments().getString(ARG_CSV_FILE_PATH);
-        if (csvFilePath != null) {
-            try {
-                List<PIDData> pidList = csvDataManager.loadPIDDataFromFile(new File(csvFilePath));
-                adapter.setPidList(pidList);
-            } catch (Exception e) {
-                Toast.makeText(requireContext(), "Error loading PID data: " + e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
+    private void loadPIDData(String csvFilePath) {
+        try {
+            List<PidData> pidDataList = csvDataManager.loadPIDDataFromFile(new File(csvFilePath));
+            adapter.submitList(pidDataList);
+        } catch (IOException e) {
+            if (isAdded()) {
+                Toast.makeText(requireContext(), 
+                    getString(R.string.error_loading_pid_file, e.getMessage()),
+                    Toast.LENGTH_LONG).show();
             }
         }
     }
 
     private void importSelectedPids() {
-        Set<PIDData> selectedPids = adapter.getSelectedPids();
+        if (!torqueServiceManager.isTorqueInstalled()) {
+            Toast.makeText(requireContext(), R.string.torque_not_installed, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Set<PidData> selectedPids = adapter.getSelectedPids();
         if (selectedPids.isEmpty()) {
             Toast.makeText(requireContext(), R.string.no_pids_selected, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Try to bind to Torque service
-        if (!torqueServiceManager.bindToTorqueService()) {
-            return; // Error message will be shown by the connection listener
-        }
-
-        // Check permissions
-        if (!torqueServiceManager.checkFullPermissions()) {
-            Toast.makeText(requireContext(), R.string.permissions_required, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Import PIDs using Torque service
         try {
-            String[] names = new String[selectedPids.size()];
-            String[] shortNames = new String[selectedPids.size()];
-            String[] modeAndPIDs = new String[selectedPids.size()];
-            String[] equations = new String[selectedPids.size()];
-            float[] minValues = new float[selectedPids.size()];
-            float[] maxValues = new float[selectedPids.size()];
-            String[] units = new String[selectedPids.size()];
-            String[] headers = new String[selectedPids.size()];
-
-            int i = 0;
-            for (PIDData pid : selectedPids) {
-                names[i] = pid.getName();
-                shortNames[i] = pid.getShortName();
-                modeAndPIDs[i] = pid.getModeAndPID();
-                equations[i] = pid.getEquation();
-                minValues[i] = pid.getMinValue();
-                maxValues[i] = pid.getMaxValue();
-                units[i] = pid.getUnit();
-                headers[i] = pid.getHeader();
-                i++;
+            boolean success = torqueServiceManager.importPids(new ArrayList<>(selectedPids));
+            if (success) {
+                Toast.makeText(requireContext(), R.string.pids_imported, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), R.string.error_importing_pids, Toast.LENGTH_LONG).show();
             }
-
-            torqueServiceManager.getTorqueService().sendPIDDataV2(
-                requireContext().getPackageName(),
-                names,
-                shortNames,
-                modeAndPIDs,
-                equations,
-                minValues,
-                maxValues,
-                units,
-                headers,
-                null,  // No start diagnostic commands
-                null   // No stop diagnostic commands
-            );
-            Toast.makeText(requireContext(), R.string.pids_imported, Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            String errorMessage = getString(R.string.error_importing_pids, e.getMessage());
-            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+        } catch (android.os.RemoteException e) {
+            String error = "Error importing PIDs: " + e.getMessage();
+            android.util.Log.e(TAG, error, e);
+            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
         }
+    }
+
+    @Override
+    public void onPermissionsGranted() {
+        // Not needed for this fragment
+    }
+
+    @Override
+    public void onPermissionsDenied(List<String> deniedPermissions) {
+        // Not needed for this fragment
     }
 }
