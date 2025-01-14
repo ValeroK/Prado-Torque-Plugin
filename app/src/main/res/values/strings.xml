@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Torque Plugin</string>
+    <string name="app_name">OBD PIDs for HKMC EVs</string>
     <string name="app_title">OBD PIDs</string>
     <string name="btn_soul_ev">Soul EV Since 2015</string>
     <string name="btn_update">Update</string>
@@ -29,9 +29,9 @@
     <string name="select_all">Select All</string>
     <string name="import_to_torque">Import to Torque</string>
     <string name="update_pids">Update PIDs</string>
-    <string name="error_no_pids_selected">Please select at least one PID to import</string>
+    <string name="error_no_pids_selected">No PIDs selected</string>
     <string name="error_torque_disconnected">Not connected to Torque. Please try again.</string>
-    <string name="error_torque_connection">Could not connect to Torque</string>
+    <string name="error_torque_connection">Failed to connect to Torque Pro</string>
     <string name="error_torque_connection_timeout">Failed to connect to Torque. Please make sure Torque is installed and running.</string>
     <string name="success_pids_imported">PIDs successfully imported</string>
     <string name="error_importing_pids">Failed to import PIDs</string>
@@ -42,9 +42,10 @@
     <string name="error_no_valid_pids">No valid PIDs found in file</string>
     <string name="permissions_required">Required permissions must be granted to use this feature</string>
     <string name="permissions_granted">Permissions granted</string>
-    <string name="permission_storage">Storage permission is required to read and write PID files</string>
-    <string name="permission_torque">Torque permission is required to import PIDs into Torque</string>
-    <string name="permission_internet">Internet permission is required to download PID files</string>
+    <string name="permission_storage">Storage access for PID files</string>
+    <string name="permission_torque">Torque handshake permission</string>
+    <string name="permission_internet">Internet access</string>
+    <string name="torque_not_installed">Torque Pro is not installed. Please install it from the Play Store.</string>
     <string name="missing_permissions_message">The following permissions are required:\n%1$s</string>
     <string name="dialog_cancel">Cancel</string>
 
@@ -67,4 +68,9 @@
     <string name="storage_permission_required">Storage permission is required to download and view PID files.</string>
     <string name="error_loading_pid_file">Error loading PID file: %1$s</string>
     <string name="torque_not_connected">Not connected to Torque Pro</string>
+    <string name="torque_connected">Connected to Torque Pro</string>
+    <string name="torque_disconnected">Disconnected from Torque Pro</string>
+    <string name="permission_explanation">This app needs Torque Pro permissions to import PIDs. Please grant the permissions in Settings to continue.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="install_torque">Install Torque Pro</string>
 </resources>

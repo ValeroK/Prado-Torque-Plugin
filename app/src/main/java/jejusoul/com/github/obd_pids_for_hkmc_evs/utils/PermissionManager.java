@@ -51,6 +51,29 @@ import java.util.Map;
 
 import jejusoul.com.github.obd_pids_for_hkmc_evs.R;
 
+/**
+ * Manages Android runtime permissions for the Prado Torque Plugin.
+ * This class centralizes all permission-related operations including:
+ * 
+ * Core Responsibilities:
+ * 1. Storage Permission Management
+ *    - Checking storage permissions status
+ *    - Requesting storage permissions at runtime
+ *    - Handling permission request results
+ * 
+ * 2. User Interface
+ *    - Displaying permission explanation dialogs
+ *    - Providing feedback through the callback interface
+ * 
+ * 3. Permission State Tracking
+ *    - Maintaining permission request state
+ *    - Handling permission denial cases
+ * 
+ * Usage:
+ * 1. Create an instance with an Activity and PermissionCallback
+ * 2. Call checkAndRequestStoragePermissions() to initiate permission flow
+ * 3. Handle results through the PermissionCallback interface
+ */
 public class PermissionManager {
     private static final int PERMISSION_REQUEST_CODE = 123;
     private static final String TORQUE_PERMISSION = "org.prowl.torque.permission.HANDSHAKE";
@@ -66,6 +89,12 @@ public class PermissionManager {
     private final Activity activity;
     private final PermissionCallback callback;
 
+    /**
+     * Interface for handling permission-related callbacks.
+     * Activities implementing this interface will receive notifications about:
+     * - When permissions are granted
+     * - When permissions are denied
+     */
     public interface PermissionCallback {
         void onPermissionsGranted();
         void onPermissionsDenied(List<String> deniedPermissions);
@@ -119,12 +148,24 @@ public class PermissionManager {
         }
     }
 
+    /**
+     * Constructs a new PermissionManager.
+     * 
+     * @param activity The activity that will handle permission requests
+     * @param callback Interface to receive permission request results
+     */
     public PermissionManager(Activity activity, PermissionCallback callback) {
         this.activity = activity;
         this.callback = callback;
         this.STORAGE_PERMISSIONS = getStoragePermissions();
     }
 
+    /**
+     * Checks if all required storage permissions are currently granted.
+     * This includes both READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE.
+     * 
+     * @return true if all storage permissions are granted, false otherwise
+     */
     public boolean areStoragePermissionsGranted() {
         return areStoragePermissionsGranted(activity);
     }
@@ -133,6 +174,11 @@ public class PermissionManager {
         return isTorquePermissionGranted(activity);
     }
 
+    /**
+     * Initiates the storage permission request flow.
+     * If permissions are already granted, calls onPermissionsGranted().
+     * Otherwise, shows the permission explanation dialog.
+     */
     public void checkAndRequestStoragePermissions() {
         List<String> missingPermissions = new ArrayList<>();
         
@@ -158,6 +204,52 @@ public class PermissionManager {
         }
     }
 
+    public boolean checkTorquePermissions() {
+        if (activity == null) {
+            // Log.e(TAG, "Context is null when checking permissions");
+            return false;
+        }
+
+        try {
+            // Check Torque plugin permissions
+            String[] permissions = {
+                TORQUE_PERMISSION
+            };
+
+            for (String permission : permissions) {
+                int result = ContextCompat.checkSelfPermission(activity, permission);
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    // Log.w(TAG, "Permission not granted: " + permission);
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (Exception e) {
+            // Log.e(TAG, "Error checking permissions", e);
+            return false;
+        }
+    }
+
+    public boolean checkServicePermissions() {
+        if (!checkTorquePermissions()) {
+            // Log.d(TAG, "Torque permissions not granted");
+            if (callback != null) {
+                callback.onPermissionsDenied(new ArrayList<>());
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Shows a dialog explaining why the app needs the requested permissions.
+     * Provides options to:
+     * 1. Proceed with permission request
+     * 2. Cancel and close the activity
+     * 
+     * @param permissions List of permissions to request
+     */
     private void showMissingPermissionsDialog(List<String> permissions) {
         StringBuilder message = new StringBuilder();
         for (String permission : permissions) {
@@ -189,6 +281,14 @@ public class PermissionManager {
                 .show();
     }
 
+    /**
+     * Handles the result of a permission request.
+     * Should be called from the activity's onRequestPermissionsResult.
+     * 
+     * @param requestCode The request code passed to requestPermissions
+     * @param permissions The requested permissions
+     * @param grantResults The grant results for the corresponding permissions
+     */
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             List<String> deniedPermissions = new ArrayList<>();

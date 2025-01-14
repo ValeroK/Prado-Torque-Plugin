@@ -1,3 +1,29 @@
+/**
+ * Manages the connection and communication with the Torque Pro service.
+ * This class is responsible for all interactions with the Torque Pro app, including:
+ * 
+ * Core Responsibilities:
+ * 1. Service Connection Management
+ *    - Binding to Torque Pro service
+ *    - Maintaining service connection state
+ *    - Handling connection callbacks
+ * 
+ * 2. PID Management
+ *    - Importing PIDs into Torque Pro
+ *    - Formatting PID data for transmission
+ *    - Handling import success/failure
+ * 
+ * 3. Error Handling
+ *    - Checking Torque Pro installation
+ *    - Managing service disconnections
+ *    - Providing error feedback
+ * 
+ * Usage:
+ * 1. Create an instance with a Context
+ * 2. Set connection listener
+ * 3. Call bindToTorqueService() to establish connection
+ * 4. Use importPids() to send PID data to Torque
+ */
 package jejusoul.com.github.obd_pids_for_hkmc_evs.utils;
 
 import android.content.ComponentName;
@@ -5,166 +31,232 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
+import androidx.core.content.ContextCompat;
 
 import org.prowl.torque.remote.ITorqueService;
-import jejusoul.com.github.obd_pids_for_hkmc_evs.utils.PidData;
 
 import java.util.List;
 
-/**
- * TorqueServiceManager handles all interactions with the Torque Pro service.
- * 
- * This manager class is responsible for:
- * - Establishing and maintaining connection with Torque Pro service
- * - Managing service binding lifecycle
- * - Handling connection state changes
- * - Checking and requesting necessary permissions
- * - Providing interface for PID data transmission
- * 
- * The class implements a robust connection management system with:
- * - Automatic reconnection attempts
- * - Connection state notifications
- * - Error handling and reporting
- * - Permission management
- * 
- * Key Features:
- * - Observer pattern for connection state notifications
- * - Automatic service binding management
- * - Permission validation
- * - Thread-safe service access
- * 
- * Connection States:
- * - DISCONNECTED: No connection to Torque Pro
- * - CONNECTING: Attempting to establish connection
- * - CONNECTED: Successfully connected to Torque Pro
- * - ERROR: Connection error occurred
- * 
- * Usage Example:
- * TorqueServiceManager manager = new TorqueServiceManager(context);
- * manager.setConnectionListener(listener);
- * manager.bindToTorqueService();
- * 
- * @see TorqueConnectionListener
- * @see ITorqueService
- */
 public class TorqueServiceManager {
-    private static final String TAG = "TorqueServiceManager";
-    private Context context;
-    private ITorqueService torqueService;
-    private boolean isBound = false;
-    private TorqueConnectionListener connectionListener;
+    private static final String TAG = TorqueServiceManager.class.getSimpleName();
+    private static final String TORQUE_PACKAGE = "org.prowl.torque";
+    private static final String TORQUE_SERVICE = "org.prowl.torque.remote.TorqueService";
 
+    private final Context context;
+    private final Handler handler;
+    private ITorqueService torqueService;
+    private ServiceConnection serviceConnection;
+    private TorqueConnectionListener connectionListener;
+    private PermissionListener permissionListener;
+    private boolean isConnected = false;
+
+    /**
+     * Interface for handling Torque service connection events.
+     * Implementers will receive notifications about:
+     * - Successful connections
+     * - Disconnections
+     * - Connection errors
+     * - Installation status
+     */
     public interface TorqueConnectionListener {
         void onTorqueConnected();
         void onTorqueDisconnected();
         void onTorqueError(String error);
+        void onTorqueNotInstalled();
     }
 
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            torqueService = ITorqueService.Stub.asInterface(service);
-            isBound = true;
-            
-            if (connectionListener != null) {
-                connectionListener.onTorqueConnected();
-            }
-        }
+    public interface PermissionListener {
+        void onPermissionRequired();
+    }
 
-        @Override
-        public void onServiceDisconnected(ComponentName className) {
-            torqueService = null;
-            isBound = false;
-            if (connectionListener != null) {
-                connectionListener.onTorqueDisconnected();
-            }
-        }
-    };
-
+    /**
+     * Constructs a new TorqueServiceManager.
+     * 
+     * @param context Application context for service binding
+     */
     public TorqueServiceManager(Context context) {
-        this.context = context;
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+        this.context = context.getApplicationContext();
+        this.handler = new Handler(Looper.getMainLooper());
+        Log.d(TAG, "TorqueServiceManager initialized with context: " + this.context);
     }
 
     public void setConnectionListener(TorqueConnectionListener listener) {
         this.connectionListener = listener;
     }
 
-    public boolean bindToTorqueService() {
-        if (!isBound) {
-            try {
-                // Check if Torque is installed
-                PackageManager pm = context.getPackageManager();
-                try {
-                    pm.getPackageInfo("org.prowl.torque", PackageManager.GET_ACTIVITIES);
-                } catch (PackageManager.NameNotFoundException e) {
-                    if (connectionListener != null) {
-                        connectionListener.onTorqueError("Torque Pro is not installed. Please install it first.");
-                    }
-                    return false;
-                }
-
-                // Create the service intent
-                Intent intent = new Intent();
-                intent.setClassName("org.prowl.torque", "org.prowl.torque.remote.TorqueService");
-                
-                // Try to start the service first
-                try {
-                    context.startService(intent);
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to start Torque service", e);
-                }
-
-                // Attempt to bind with BIND_AUTO_CREATE flag
-                boolean successfulBind = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-                
-                if (!successfulBind) {
-                    Log.e(TAG, "Failed to bind to Torque service");
-                    if (connectionListener != null) {
-                        connectionListener.onTorqueError("Failed to connect to Torque Pro. Please ensure Torque Pro is running and try again.");
-                    }
-                }
-                
-                return successfulBind;
-            } catch (Exception e) {
-                Log.e(TAG, "Error binding to Torque service", e);
-                if (connectionListener != null) {
-                    connectionListener.onTorqueError("Error connecting to Torque Pro: " + e.getMessage());
-                }
-                return false;
-            }
-        }
-        return true;
+    public void setPermissionListener(PermissionListener listener) {
+        this.permissionListener = listener;
     }
 
-    public void unbindFromTorqueService() {
-        if (isBound) {
-            context.unbindService(serviceConnection);
-            isBound = false;
-            torqueService = null;
-        }
-    }
-
+    /**
+     * Gets the current Torque service instance.
+     * 
+     * @return ITorqueService interface or null if not connected
+     */
     public ITorqueService getTorqueService() {
         return torqueService;
     }
 
-    public boolean checkFullPermissions() {
-        return PermissionManager.isTorquePermissionGranted(context);
-    }
-
     public boolean isConnected() {
-        return isBound && torqueService != null;
+        return isConnected;
     }
 
-    public void importPids(List<PidData> pids) {
-        if (!isConnected()) {
+    /**
+     * Unbinds from the Torque service if currently bound.
+     * Should be called when the connection is no longer needed.
+     */
+    public void unbindFromTorqueService() {
+        if (isConnected) {
+            try {
+                context.unbindService(serviceConnection);
+                Log.d(TAG, "Successfully unbound from Torque service");
+            } catch (Exception e) {
+                Log.e(TAG, "Error unbinding from service", e);
+            } finally {
+                isConnected = false;
+                torqueService = null;
+            }
+        }
+    }
+
+    /**
+     * Checks if Torque Pro is installed on the device.
+     * 
+     * @return true if Torque Pro is installed, false otherwise
+     */
+    public boolean isTorqueInstalled() {
+        if (context == null) {
+            Log.e(TAG, "Context is null when checking Torque installation");
+            return false;
+        }
+
+        PackageManager pm = context.getPackageManager();
+        Intent queryIntent = new Intent("org.prowl.torque.ACTIVITY_PLUGIN");
+        List<ResolveInfo> resolveInfos = pm.queryIntentActivities(queryIntent, PackageManager.MATCH_ALL);
+
+        if (!resolveInfos.isEmpty()) {
+            for (ResolveInfo info : resolveInfos) {
+                if (info.activityInfo != null && TORQUE_PACKAGE.equals(info.activityInfo.packageName)) {
+                    Log.d(TAG, "Found Torque via intent query");
+                    return true;
+                }
+            }
+        }
+
+        // Try service intent
+        Intent serviceIntent = new Intent();
+        serviceIntent.setComponent(new ComponentName(TORQUE_PACKAGE, TORQUE_SERVICE));
+        List<ResolveInfo> serviceInfos = pm.queryIntentServices(serviceIntent, PackageManager.MATCH_ALL);
+
+        if (!serviceInfos.isEmpty()) {
+            Log.d(TAG, "Found Torque via service query");
+            return true;
+        }
+
+        Log.w(TAG, "Torque not found via any query method");
+        return false;
+    }
+
+    /**
+     * Attempts to bind to the Torque Pro service.
+     * Creates an explicit intent for the Torque service and attempts to bind.
+     * 
+     * @return true if binding process started successfully, false otherwise
+     */
+    public boolean bindToTorqueService() {
+        Log.d(TAG, "Attempting to bind to Torque service");
+
+        if (context == null) {
+            Log.e(TAG, "Context is null when binding to service");
+            return false;
+        }
+
+        if (!isTorqueInstalled()) {
+            Log.d(TAG, "Torque is not installed");
+            if (connectionListener != null) {
+                connectionListener.onTorqueNotInstalled();
+            }
+            return false;
+        }
+
+        return attemptServiceBinding();
+    }
+
+    private boolean attemptServiceBinding() {
+        if (isConnected) {
+            Log.d(TAG, "Already connected to Torque service");
+            return true;
+        }
+
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new ComponentName(TORQUE_PACKAGE, TORQUE_SERVICE));
+
+            serviceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    Log.d(TAG, "Service connected");
+                    try {
+                        torqueService = ITorqueService.Stub.asInterface(service);
+                        isConnected = true;
+                        if (connectionListener != null) {
+                            connectionListener.onTorqueConnected();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to get Torque interface", e);
+                        if (connectionListener != null) {
+                            connectionListener.onTorqueError("Failed to get Torque interface: " + e.getMessage());
+                        }
+                    }
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    Log.d(TAG, "Service disconnected");
+                    torqueService = null;
+                    isConnected = false;
+                    if (connectionListener != null) {
+                        connectionListener.onTorqueDisconnected();
+                    }
+                }
+            };
+
+            boolean bound = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+            Log.d(TAG, "Bind attempt result: " + bound);
+            return bound;
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error binding to service", e);
+            if (connectionListener != null) {
+                connectionListener.onTorqueError("Error binding to service: " + e.getMessage());
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Imports PID data into Torque Pro.
+     * Formats and sends PID data using the appropriate service method.
+     * 
+     * @param pids List of PID data to import
+     * @return true if import was successful, false otherwise
+     * @throws RemoteException if service communication fails
+     */
+    public boolean importPids(List<PidData> pids) throws RemoteException {
+        if (!isConnected) {
             if (connectionListener != null) {
                 connectionListener.onTorqueError("Not connected to Torque Pro");
             }
-            return;
+            return false;
         }
 
         try {
@@ -182,7 +274,9 @@ public class TorqueServiceManager {
                 PidData pid = pids.get(i);
                 names[i] = pid.getName();
                 shortNames[i] = pid.getShortName();
-                modeAndPIDs[i] = pid.getModeAndPID();
+                String modeAndPID = pid.getModeAndPID();
+                // Remove "0x" prefix if present
+                modeAndPIDs[i] = modeAndPID.startsWith("0x") ? modeAndPID.substring(2) : modeAndPID;
                 equations[i] = pid.getEquation();
                 minValues[i] = pid.getMinValue();
                 maxValues[i] = pid.getMaxValue();
@@ -203,19 +297,25 @@ public class TorqueServiceManager {
             );
 
             if (success) {
+                Log.d(TAG, "Successfully imported " + size + " PIDs");
                 if (connectionListener != null) {
-                    connectionListener.onTorqueConnected(); // Refresh UI state
+                    connectionListener.onTorqueConnected();
                 }
             } else {
+                String error = "Failed to import PIDs";
+                Log.e(TAG, error);
                 if (connectionListener != null) {
-                    connectionListener.onTorqueError("Failed to import PIDs");
+                    connectionListener.onTorqueError(error);
                 }
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Error importing PIDs", e);
+            return success;
+        } catch (Exception e) {
+            String error = "Error importing PIDs: " + e.getMessage();
+            Log.e(TAG, error, e);
             if (connectionListener != null) {
-                connectionListener.onTorqueError("Failed to import PIDs: " + e.getMessage());
+                connectionListener.onTorqueError(error);
             }
+            return false;
         }
     }
 }

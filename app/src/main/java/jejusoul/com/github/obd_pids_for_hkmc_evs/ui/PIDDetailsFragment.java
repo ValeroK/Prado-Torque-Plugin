@@ -136,8 +136,8 @@ public class PIDDetailsFragment extends Fragment implements PermissionManager.Pe
     }
 
     private void importSelectedPids() {
-        if (!torqueServiceManager.isConnected()) {
-            Toast.makeText(requireContext(), R.string.torque_not_connected, Toast.LENGTH_SHORT).show();
+        if (!torqueServiceManager.isTorqueInstalled()) {
+            Toast.makeText(requireContext(), R.string.torque_not_installed, Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -147,8 +147,18 @@ public class PIDDetailsFragment extends Fragment implements PermissionManager.Pe
             return;
         }
 
-        torqueServiceManager.importPids(new ArrayList<>(selectedPids));
-        Toast.makeText(requireContext(), R.string.pids_imported, Toast.LENGTH_SHORT).show();
+        try {
+            boolean success = torqueServiceManager.importPids(new ArrayList<>(selectedPids));
+            if (success) {
+                Toast.makeText(requireContext(), R.string.pids_imported, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), R.string.error_importing_pids, Toast.LENGTH_LONG).show();
+            }
+        } catch (android.os.RemoteException e) {
+            String error = "Error importing PIDs: " + e.getMessage();
+            android.util.Log.e(TAG, error, e);
+            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
